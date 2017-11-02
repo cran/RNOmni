@@ -1,5 +1,5 @@
 ## ----global_options, include=FALSE---------------------------------------
-knitr::opts_chunk$set(fig.width=1.5*3, fig.height=1.5*2, fig.align="center",echo=T, warning=F, message=F, cache=F, results='hold');
+knitr::opts_chunk$set(fig.width=1.5*3, fig.height=1.5*2, fig.align="center",echo=T, warning=F, message=F, cache=T, results='hold');
 
 ## ----A00, include = T----------------------------------------------------
 # Chi-1 data

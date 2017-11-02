@@ -1,16 +1,16 @@
 ---
 title: "Rank Normal Omnibus Association Test"
 author: "Zachary McCaw"
-date: "Updated: 10/27/18"
+date: "Updated: 10/29/18"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Rank Normal Omnibus Association Test}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=1.5*3, fig.height=1.5*2, fig.align="center",echo=T, warning=F, message=F, cache=F, results='hold');
+knitr::opts_chunk$set(fig.width=1.5*3, fig.height=1.5*2, fig.align="center",echo=T, warning=F, message=F, cache=T, results='hold');
 ```
 
 ## Contents
@@ -235,9 +235,9 @@ cowplot::plot_grid(plotlist=list(q1,q2),ncol=1);
 
 #### Definition of the Rank Based Inverse Normal Transformation
 Suppose a continuous measurement is available for each of $n$ subjects. Let $u_{i}$ denote the measurement for the $i$th subject, and let $\text{rank}(u_{i})$ denote the sample rank of $u_{i}$ when the measurements are placed in ascending order. The rank based inverse normal transformation is defined as:
-$$
-\text{INT}(u_{i}) = \Phi^{-1}\left[\frac{\text{rank}(u_{i})-c}{n-2c+1}\right]
-$$
+
+$$\text{INT}(u_{i}) = \Phi^{-1}\left[\frac{\text{rank}(u_{i})-c}{n-2c+1}\right]$$
+
 Here $c\in(0,1/2)$ is an offset introduced to avoid mapping the sample maximum to infinity. By default, the Blom offset of $c=3/8$ is adopted. 
 
 #### Run Time
