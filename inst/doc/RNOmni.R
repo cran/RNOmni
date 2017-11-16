@@ -98,8 +98,12 @@ p2.omni.avg = RNOmni::RNOmni(y=Y[,2],G=G,X=X,S=S,method="AvgCorr");
 round(head(p2.omni.avg),digits=3);
 cat("\n");
 cat("Omnibus Test, T3 Phenotype, Bootstrap Correaltion Method\n");
-p2.omni.boot = RNOmni::RNOmni(y=Y[,2],G=G,X=X,S=S,method="Bootstrap",B=100);
+p2.omni.boot = RNOmni::RNOmni(y=Y[,2],G=G,X=X,S=S,method="Bootstrap",keep.rho=T,B=100);
 round(head(p2.omni.boot),digits=3);
+cat("\n");
+cat("Replicate the Omnibus Test on the T3 Phenotype, Manually Specifying Correlation\n");
+p2.omni.manual = RNOmni::RNOmni(y=Y[,2],G=G,X=X,S=S,method="Manual",set.rho=p2.omni.boot[,"Corr"],keep.rho=T);
+round(head(p2.omni.manual),digits=3);
 cat("\n");
 
 ## ----B02, include=T, echo=F----------------------------------------------
