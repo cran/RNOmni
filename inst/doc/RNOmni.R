@@ -1,15 +1,17 @@
 ## ----global_options, include=FALSE---------------------------------------
 knitr::opts_chunk$set(fig.width=1.5*3, fig.height=1.5*2, fig.align="center",echo=T, warning=F, message=F, cache=T, results='hold');
 
+library(RNOmni);
+C1 = require(ggplot2)&require(reshape2);
+C2 = require(ggplot2)&require(cowplot);
+
 ## ----A00, include = T----------------------------------------------------
 # Chi-1 data
 y = rchisq(n=1000,df=1);
 # Rank-normalize
 z = RNOmni::rankNormal(y);
 
-## ----A01, echo=F, fig.width=2*3------------------------------------------
-library(ggplot2);
-library(reshape2);
+## ----A01, echo=F, fig.width=2*3, eval=C1---------------------------------
 # Data frame
 df = data.frame("Original"=y,"INT"=z);
 df = suppressMessages(reshape2::melt(df));
@@ -21,7 +23,6 @@ q = q + ggtitle(expression(chi[1]^2~Phenotype~Before~and~After~INT));
 print(q);
 
 ## ----A02, include=T------------------------------------------------------
-library(RNOmni);
 ## Example data
 X = RNOmni::X;
 cat("Covariates\n");
@@ -36,13 +37,13 @@ G = RNOmni::G;
 G[1:6,1:6];
 cat("\n");
 cat("Sample Minor Allele Frequency\n");
-summary(apply(G,MARGIN=2,FUN=mean)/2);
+summary(apply(G,MARGIN=1,FUN=mean)/2);
 cat("\n");
 cat("Phenotypes\n");
 Y = RNOmni::Y;
 round(head(Y),digits=2);
 
-## ----A03, include=T, echo=F, fig.width=2*3, fig.height=2*1.5*2-----------
+## ----A03, include=T, echo=F, fig.width=2*3, fig.height=2*1.5*2, eval=C2----
 # Residuals after projection onto X,S
 n = length(y);
 D = cbind(1,X,S);
@@ -160,7 +161,7 @@ Q2 = data.frame("Method"=names(Q2),"y"=as.numeric(Q2));
 Q2$L = Q2$y-2*sqrt(Q2$y*(1-Q2$y)/1000);
 Q2$U = Q2$y+2*sqrt(Q2$y*(1-Q2$y)/1000);
 
-## ----C05, echo=F, fig.width=2*3, fig.height=2*1.5*2----------------------
+## ----C05, echo=F, fig.width=2*3, fig.height=2*1.5*2, eval=C2-------------
 ## Plotting
 Q1$Method = Q2$Method = factor(Q1$Method,levels=c("Omni.Boot","Omni.AvgCorr","PIINT","DINT","BAT"),ordered=T);
 q = ggplot(data=Q1) + geom_linerange(aes(x=Method,ymin=L,ymax=U)) + geom_point(aes(x=Method,y=y),color="royalblue",size=1.5);
@@ -172,52 +173,4 @@ q = q + geom_hline(yintercept=0.05,linetype="dashed",color="gray");
 q = q + theme_bw() + ylab("Type I Error") + coord_flip();
 q2 = q + ggtitle(expression(Estimated~Size~against~t[3]~Phenotype~at~alpha==0.05));
 cowplot::plot_grid(plotlist=list(q1,q2),ncol=1);
-
-## ----D01, include=T------------------------------------------------------
-# Subset to 100 loci
-H = G[1:100,];
-# Time performance
-library(microbenchmark);
-microbenchmark(BAT(y=Y[,1],G=H,X=X,S=S),DINT(y=Y[,1],G=H,X=X,S=S),PIINT(y=Y[,1],G=H,X=X,S=S),
-               RNOmni(y=Y[,1],G=H,X=X,S=S,method="AvgCorr"));
-microbenchmark(RNOmni(y=Y[,1],G=H,X=X,S=S,method="Bootstrap",B=100),times=10);
-
-## ----E01, include=T------------------------------------------------------
-# Introduce Missingness
-y.m = Y[,1];
-y.m[sample(length(y.m),size=10,replace=F)] = NA;
-G.m = G;
-G.m[sample(length(G.m),size=10000,replace=F)] = NA;
-X.m = X;
-X.m[sample(length(X.m),size=100,replace=F)] = NA;
-S.m = S;
-S.m[sample(length(S.m),size=10,replace=F)] = NA;
-# Association Testing after Missingness
-pm.bat = RNOmni::BAT(y=y.m,G=G.m,X=X.m,S=S.m);
-pm.dint = RNOmni::DINT(y=y.m,G=G.m,X=X.m,S=S.m);
-pm.piint = RNOmni::PIINT(y=y.m,G=G.m,X=X.m,S=S.m);
-pm.omni.avg = RNOmni::RNOmni(y=y.m,G=G.m,X=X.m,S=S.m);
-pm.omni.boot = RNOmni::RNOmni(y=y.m,G=G.m,X=X.m,S=S.m,method="Bootstrap",B=100);
-
-## ----E02, include=T, echo=F----------------------------------------------
-# Display original results
-cat("Normal Phenotype in the Absence of Missingness, Combined Results\n");
-A = round(Q1[,2:4],digits=3);
-colnames(A)[1] = "Size";
-show(data.frame("Method"=Q1$Method,A));
-cat("\n");
-cat("Normal Phenotype in the Presence of Missingness, Combined Results\n");
-# Bind missingness results
-P.m = cbind("BAT"=pm.bat,"DINT"=pm.dint,"PIINT"=pm.piint,
-            "Omni.Avg"=pm.omni.avg[,"RNOmni"],"Omni.Boot"=pm.omni.boot[,"RNOmni"]);
-# Size
-QM = apply(X=(P.m<=0.05),MARGIN=2,FUN=mean);
-QM = data.frame("Method"=names(QM),"Size"=as.numeric(QM));
-# CIs
-QM$L = QM$Size-2*sqrt(QM$Size*(1-QM$Size)/1000);
-QM$U = QM$Size+2*sqrt(QM$Size*(1-QM$Size)/1000);
-# Display missingness results
-B = round(QM[,2:4],digits=3);
-show(data.frame("Method"=QM$Method,B));
-cat("\n");
 
