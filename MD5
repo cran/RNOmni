@@ -1,8 +1,8 @@
-fbfb364205b2d769dc4ea8ed1947d0ba *DESCRIPTION
+ce00daa17f1ca1c0365837ad8f34caef *DESCRIPTION
 2086ca5ddc6e09e8d96310ee9e0661a0 *NAMESPACE
 82afaa97169ce87b946ea259b979e2b3 *R/DataDesc.R
 714b021bf159d8d9f787ea9910fb8f35 *R/InputCheck.R
-23a0649f00a14c29491562dd32b76c86 *R/RankNormal.R
+0332ca5a67b9be75e269a57029a3920e *R/RankNormal.R
 f3efcd2808c41b57e74533efe23febef *R/RcppExports.R
 452fe90c95cb73c1cdfd7ed0618576f9 *build/vignette.rds
 564e81a17283c1df63a46642bd0190f5 *data/G.rda
@@ -11,7 +11,7 @@ f3efcd2808c41b57e74533efe23febef *R/RcppExports.R
 9afa0fb85f9921348472e52e689a256e *data/Y.rda
 e35821a0d3694c0c189ef33ff44e8b83 *inst/doc/RNOmni.R
 3ff16765464d580446d8cb7cbc019589 *inst/doc/RNOmni.Rmd
-9179039223d4ff24733b152278488dc5 *inst/doc/RNOmni.html
+70028c83f9564b2bfe848861bc62d6d6 *inst/doc/RNOmni.html
 9d93153fe876a628a31c7b20bac33153 *man/AvgCorr.Rd
 1e6104f265ef2e0bc86807d3951825c2 *man/BAT.Rd
 b70356c279905ab56855146f779fed62 *man/BootCorr.Rd
