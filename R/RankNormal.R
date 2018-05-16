@@ -1,3 +1,6 @@
+# Purpose: Rank normal transform
+# Updated: 180516
+
 #' @useDynLib RNOmni
 #' @importFrom Rcpp sourceCpp
 NULL
@@ -5,7 +8,7 @@ NULL
 #' Rank-Normalize
 #' 
 #' Applies the rank based inverse normal transform (INT) to a numeric vector. 
-#' INT is indicated for continuous outcomes. See the vignette for the
+#' INT is best-suited to continuous outcomes. See the vignette for the
 #' definition of INT.
 #' 
 #' @importFrom stats qnorm
@@ -36,344 +39,30 @@ rankNormal = function(u,k=3/8){
   return(Out);
 };
 
-#' Basic Association Test
-#' 
-#' Tests the association between genotype and the untransformed phenotype, 
-#' adjusting for covariates and population structure.
-#' 
-#' @importFrom plyr aaply
-#' @importFrom stats pf
-#' @export
-#' 
-#' @param y Numeric phenotype vector.
-#' @param G Obs by snp genotype matrix.
-#' @param X Model matrix of covariates.
-#' @param S Model matrix of structure adjustments.
-#' @param calcP Logical indicating that p values should be calculated.
-#' @param parallel Logical indicating whether to run in parallel. Must register
-#'   parallel backend first.
-#' @param check Logical indicating whether to check the input. 
-#' @return A numeric matrix of score statistics, one for each locus in \code{G},
-#'   assessing the null hypothesis that genotype is unrelated to the outcome. If
-#'   \code{calcP=T}, a p-value is additionally calculated for each locus.
-#'   
-#' @examples
-#' # BAT against normal phenotype
-#' p = RNOmni::BAT(y=RNOmni::Y[,1],G=RNOmni::G[,1:10],X=RNOmni::X,S=RNOmni::S);
-
-BAT = function(y,G,X,S,calcP=T,parallel=F,check=T){
-  if(check){
-    # Check inputs
-    Input = inCheck(y,G,X,S);
-    if(Input$fail){stop("Input check failed.")};
-    y = Input$y;
-    G = Input$G;
-    X = Input$X;
-    S = Input$S;
-  }
-  # Model matrix
-  Z = cbind(X,S);
-  # Loci
-  n.g = ncol(G);
-  # Sample size
-  n = length(y);
-  # Degrees of freedom
-  df2 = n-ncol(Z);
-  # Fit null model
-  M0 = fitNorm(y=y,Z=Z);
-  # Extract model components
-  e = M0$Resid;
-  tau = M0$Tau;
-  I22 = tau*M0$Ibb;
-  # Function to calculate score statistics
-  aux = function(g){
-    # Adjust for missingness
-    keep = !is.na(g);
-    g = g[keep];
-    Z = Z[keep,];
-    e = e[keep];
-    r = length(g)/n;
-    # Calculate score
-    I11 = sum(g^2);
-    I12 = fastIP(A=g,B=Z);
-    V = as.numeric(SchurC(I11=I11,I22=r*I22,I12=I12));
-    a = as.numeric(fastIP(A=g,B=e));
-    Ts = a^2/(V*tau);
-    return(Ts);
-  }
-  # Calculate score statistics
-  U = aaply(.data=G,.margins=2,.fun=aux,.parallel=parallel);
-  # Output frame
-  Out = matrix(U,nrow=n.g);
-  colnames(Out) = "Score";
-  # Calculate p values
-  if(calcP){
-    P = pf(q=U,df1=1,df2=df2,lower.tail=F);
-    Out = cbind(Out,P);
-  }
-  return(Out);
-}
-
-#' Direct-INT
-#' 
-#' Tests for association between genotype and the rank normalized phenotype, 
-#' adjusting for covariates and population structure.
-#' 
-#' @importFrom plyr aaply
-#' @importFrom stats pf
-#' @export
-#' 
-#' @param y Numeric phenotype vector.
-#' @param G Obs by snp genotype matrix.
-#' @param X Model matrix of covariates.
-#' @param S Model matrix of structure adjustments.
-#' @param calcP Logical indicating that p values should be calculated.
-#' @param k Offset applied during rank-normalization. See 
-#'   \code{\link{rankNormal}}.
-#' @param parallel Logical indicating whether to run in parallel. Must register
-#'   parallel backend first.  
-#' @param check Logical indicating whether to check the input. 
-#' @return A numeric matrix of score statistics, one for each locus in \code{G},
-#'   assessing the null hypothesis that genotype is unrelated to the outcome. If
-#'   \code{calcP=T}, a p-value is additionally calculated for each locus.
-#'   
-#' @examples
-#' # Direct INT on the normal phenotype 
-#' p = RNOmni::DINT(y=RNOmni::Y[,1],G=RNOmni::G[,1:10],X=RNOmni::X,S=RNOmni::S);
-
-DINT = function(y,G,X,S,calcP=T,k=3/8,parallel=F,check=T){
-  if(check){
-    # Check inputs
-    Input = inCheck(y,G,X,S);
-    if(Input$fail){stop("Input check failed.")};
-    y = Input$y;
-    G = Input$G;
-    X = Input$X;
-    S = Input$S;
-  }
-  # Model matrix
-  Z = cbind(X,S); 
-  # Loci
-  n.g = ncol(G);
-  # Sample size
-  n = length(y);
-  # Degrees of freedom
-  df2 = n-ncol(Z);
-  # Transform phenotype
-  y = rankNormal(y,k=k);
-  # Degrees of freedom
-  df2 = length(y)-ncol(Z);
-  # Fit null model
-  M0 = fitNorm(y=y,Z=Z);
-  # Extract model components
-  e = M0$Resid;
-  tau = M0$Tau;
-  I22 = tau*M0$Ibb;
-  # Function to calculate score statistics
-  aux = function(g){
-    # Adjust for missingness
-    keep = !is.na(g);
-    g = g[keep];
-    Z = Z[keep,];
-    e = e[keep];
-    r = length(g)/n;
-    # Score Test
-    I11 = sum(g^2);
-    I12 = fastIP(A=g,B=Z);
-    V = as.numeric(SchurC(I11=I11,I22=r*I22,I12=I12));
-    a = as.numeric(fastIP(A=g,B=e));
-    Ts = a^2/(V*tau);
-    return(Ts);
-  }
-  # Calculate score statistics
-  U = aaply(.data=G,.margins=2,.fun=aux,.parallel=parallel);
-  # Output frame
-  Out = matrix(U,nrow=n.g);
-  colnames(Out) = "Score";
-  # Calculate p values
-  if(calcP){
-    P = pf(q=U,df1=1,df2=df2,lower.tail=F);
-    Out = cbind(Out,P);
-  }
-  return(Out);
-}
-
-#' Indirect-INT, Without Secondary Adjustment
-#' 
-#' Two-stage regression procedure. In the first stage, phenotype is regressed on
-#' covariates and structure adjustments to obtain residuals. In the second stage,
-#' INT-transformed residuals are regressed on genotype only.
-#' 
-#' Note that, in simulations, this approach did not consistently 
-#' control the type I error. For a similar approach that did provide valid 
-#' inference, see \code{\link{IINT}}.
-#' 
-#' @importFrom plyr aaply
-#' @importFrom stats pf var
-#' @export
-#' 
-#' @param y Numeric phenotype vector.
-#' @param G Obs by snp genotype matrix.
-#' @param X Model matrix of covariates.
-#' @param S Model matrix of structure adjustments.
-#' @param calcP Logical indicating that p values should be calculated.
-#' @param k Offset applied during rank-normalization. See
-#'   \code{\link{rankNormal}}.
-#' @param parallel Logical indicating whether to run in parallel. Must register
-#'   parallel backend first. 
-#' @param check Logical indicating whether to check the input.
-#' @return A numeric matrix of Wald statistics, one for each locus in \code{G},
-#'   assessing the null hypothesis that genotype is unrelated to the outcome. If
-#'   \code{calcP=T}, a p-value is additionally calculated for each locus.
-#'   
-#' @examples
-#' # IINT0 against normal phenotype 
-#' p = RNOmni::IINT0(y=RNOmni::Y[,1],G=RNOmni::G[,1:10],X=RNOmni::X,S=RNOmni::S);
-
-IINT0 = function(y,G,X,S,calcP=T,k=3/8,parallel=F,check=T){
-  warning("This function was included for simulation purposes only.\n");
-  if(check){
-    # Check inputs
-    Input = inCheck(y,G,X,S);
-    if(Input$fail){stop("Input check failed.")};
-    y = Input$y;
-    G = Input$G;
-    X = Input$X;
-    S = Input$S;
-  }
-  # Model matrix
-  Z = cbind(X,S); 
-  # Loci
-  n.g = ncol(G);
-  # Degrees of freedom
-  df2 = length(y)-ncol(Z);
-  # Fit null model
-  M0 = fitNorm(y=y,Z=Z);
-  # Transformed Residuals
-  e = rankNormal(M0$Resid);
-  # Calculate F statistic
-  aux = function(g){
-    # Adjust for missingness
-    keep = !is.na(g);
-    g = g[keep];
-    e = e[keep];
-    # Wald statistic
-    g2 = sum(g^2);
-    r2 = as.numeric(fastIP(A=g,B=e))^2;
-    Tw = r2/(g2);
-    return(Tw);
-  }
-  # Wald statistics
-  W = aaply(.data=G,.margins=2,.fun=aux,.parallel=parallel);
-  # Output frame
-  Out = matrix(W,nrow=n.g);
-  colnames(Out) = "Wald";
-  # Calculate p values
-  if(calcP){
-    P = pf(q=W,df1=1,df2=df2,lower.tail=F);
-    Out = cbind(Out,P);
-  }
-  return(Out);
-};
-
-#' Indirect-INT
-#' 
-#' Two-stage regression procedure. In the first stage, phenotype is regressed on
-#' covariates and structure adjustments to obtain residuals. In the second stage, 
-#' INT-transformed residuals are regressed on genotype and population structure.
-#' 
-#' @importFrom plyr aaply
-#' @importFrom stats pf
-#' @export
-#' 
-#' @param y Numeric phenotype vector.
-#' @param G Obs by snp genotype matrix.
-#' @param X Model matrix of covariates.
-#' @param S Model matrix of structure adjustments.
-#' @param calcP Logical indicating that p values should be calculated.
-#' @param k Offset applied during rank-normalization. See \code{\link{rankNormal}}.
-#' @param parallel Logical indicating whether to run in parallel. Must register
-#'   parallel backend first.
-#' @param check Logical indicating whether to check the input.
-#' @return A numeric matrix of score statistics, one for each locus in \code{G},
-#'   assessing the null hypothesis that genotype is unrelated to the outcome. If
-#'   \code{calcP=T}, a p-value is additionally calculated for each locus.
-#'   
-#' @examples 
-#' # IINT against normal phenotype
-#' p = RNOmni::IINT(y=RNOmni::Y[,1],G=RNOmni::G[,1:10],X=RNOmni::X,S=RNOmni::S);
-
-IINT = function(y,G,X,S,calcP=T,k=3/8,parallel=F,check=T){
-  if(check){
-    # Check inputs
-    Input = inCheck(y,G,X,S);
-    if(Input$fail){stop("Input check failed.")};
-    y = Input$y;
-    G = Input$G;
-    X = Input$X;
-    S = Input$S;
-  }
-  # Loci
-  n.g = ncol(G);
-  # Degrees of freedom
-  n = length(y);
-  p = ncol(X);
-  q = ncol(S);
-  df2 = n-p-q;
-  # Stage 1 model
-  M1 = fitNorm(y=y,Z=cbind(X,S));
-  ex = rankNormal(u=M1$Resid);
-  # Stage 2 model
-  M2 = fitNorm(y=ex,Z=S);
-  # Extract components
-  e = M2$Resid;
-  tau = M2$Tau; 
-  I22 = tau*M2$Ibb;
-  # REML-type correction
-  tau = (n-q)/(n-p-q)*tau;
-  # Function to calculate score statistics
-  aux = function(g){
-    # Adjust for missingness
-    keep = !is.na(g);
-    g = g[keep];
-    S = S[keep,];
-    e = e[keep];
-    r = length(g)/n;
-    # Score statistic
-    I11 = sum(g^2);
-    I12 = fastIP(A=g,B=S);
-    V = as.numeric(SchurC(I11=I11,I22=r*I22,I12=I12));
-    a = as.numeric(fastIP(A=g,B=e));
-    Ts = a^2/(tau*V);
-    return(Ts);
-  }
-  # Calculate score statistics
-  U = aaply(.data=G,.margins=2,.fun=aux,.parallel=parallel);
-  # Output frame
-  Out = matrix(U,nrow=n.g);
-  colnames(Out) = "Score";
-  # Calculate p values
-  if(calcP){
-    P = pf(q=U,df1=1,df2=df2,lower.tail=F);
-    Out = cbind(Out,P);
-  }
-  return(Out);
-}
-
 #' Average Correlation Estimate.
 #' 
-#' Estimate correlation using the average of qnorm(p1)*qnorm(p2) across loci, where
-#' (p1,p2) are p-values obtained via two different association tests. 
+#' Estimates the correlation between correlated p-values on the Z-score scale. The
+#' p-values are supposed to have arisen from different tests of the same hypothesis
+#' using the same data. Since an estimate of correlation under the null is of interest,
+#' pairs where at least one of the Z scores exceeds the threshold \eqn{\tau} are excluded.
+#' 
+#' @importFrom stats qnorm
+#' @export
 #' 
 #' @param p1 Fist p-value.
 #' @param p2 Second p-value.
+#' @param tau Threshold Z score above which the p-value likely corresponds to a true positive.
 #' @param a Force correlation estimate to fall in the interval (a,1-a);
-#' @importFrom stats qnorm
+#' @return A numeric correlation. 
 
-AvgCorr = function(p1,p2,a=1e-3){
+AvgCorr = function(p1,p2,tau=3,a=1e-3){
   # Convert to z-scores
   z1 = -qnorm(p1);
   z2 = -qnorm(p2);
+  # Restrict to probable null loci
+  keep = (z1<=3)&(z2<=3);
+  z1 = z1[keep];
+  z2 = z2[keep];
   # Estimated correlation
   r = vecCor(z1,z2);
   r = min(r,1-a);
@@ -384,8 +73,10 @@ AvgCorr = function(p1,p2,a=1e-3){
 
 #' Bootstrap Correlation Estimate.
 #' 
-#' Use bootstrap to estimate correlation among Z statistics
-#' whose maximum is taken in the omnibus test.
+#' Estimates the correlation between correlated p-values on the Z-score scale.
+#' Avoids the assumption that the correlation between p-values is constant across
+#' loci. Instead, bootstrap is used to calculate locus-specific estimates of the
+#' correlation between p-values. 
 #' 
 #' @importFrom abind abind
 #' @importFrom foreach "%dopar%" foreach registerDoSEQ
@@ -393,13 +84,14 @@ AvgCorr = function(p1,p2,a=1e-3){
 #' @importFrom stats cor qnorm
 #'  
 #' @param y Numeric phenotype vector.
-#' @param G Snp by obs genotype matrix.
-#' @param X Obs by feature covariate matrix.
-#' @param S Obs by feature structure matrix.
+#' @param G Obs by snp genotype matrix.
+#' @param X Model matrix of covariates.
+#' @param S Model matrix of structure adjustments.
 #' @param k Offset applied during rank-normalization. See
 #'   \code{\link{rankNormal}}.
 #' @param B Bootstrap samples for correlation estimation. 
 #' @param parallel Run bootstraps in parallel? Must register parallel backend first.
+#' @return Numeric matrix of correlation estimates, one per locus (column) in G. 
 
 BootCorr = function(y,G,X,S,k=3/8,B=100,parallel){
   # Parallelize
@@ -421,7 +113,15 @@ BootCorr = function(y,G,X,S,k=3/8,B=100,parallel){
     return(cbind(z1,z2));
   }
   # Calculate correlation
-  aux = function(X){vecCor(X[1,],X[2,])};
+  aux = function(X){
+    z1 = X[1,];
+    z2 = X[2,];
+    keep = (z1<=3)&(z2<=3);
+    z1 = z1[keep];
+    z2 = z2[keep];
+    r = vecCor(z1,z2)
+    return(r);
+    };
   R = aaply(.data=Rho,.margins=1,.fun=aux,.parallel=parallel);
   # Output
   return(R);
@@ -429,42 +129,40 @@ BootCorr = function(y,G,X,S,k=3/8,B=100,parallel){
 
 #' Omnibus P-value
 #' 
-#' Calculate p-value for omnibus statistic.
-#' @param Q Numeric vector formatted as (p1,p2,rho), where p1 and p2 are 
-#' estimated p-values, and rho is their correlation. 
-#' @importFrom stats qnorm
-#' @importFrom mvtnorm pmvnorm
+#' Calculates the p-value for the maximum of two correlated, standard normal 
+#' random variables. 
 #' 
+#' @importFrom stats dnorm integrate pnorm
 #' @export
+#' 
+#' @param u Test statistic.
+#' @param r Correlation.
+#' @return Numeric p-value. 
 
 # Calculate p for omnibus statistic
-OmniP = function(Q){
-  # Q : vector formatted as (p1,p2,rho);
-  p = Q[1:2];
-  r = Q[3];
-  # Convert to Z's
-  Z = -qnorm(p);
-  # Omnibus statistic
-  omni = max(Z);
-  # Correlation matrix
-  C = matrix(c(1,r,r,1),ncol=2,byrow=T);
+OmniP = function(u,r){
+  # Density of maximum
+  f = function(u){
+    w = sqrt((1-r)/(1+r));
+    return(2*dnorm(u)*pnorm(w*u));
+  }
   # P-value
-  p.omni = 1 - mvtnorm::pmvnorm(upper=c(omni,omni),corr=C)[1];
-  if(p.omni<=1e-16){p.omni=1e-16};
-  # Output
-  Out = c(omni,p.omni);
-  return(Out)
+  p = integrate(f=f,lower=u,upper=Inf)$value;
+  return(p);
 };
 
 #' Rank-Normal Omnibus Test
 #' 
-#' Association test that synthesizes the \code{\link{DINT}} and 
-#' \code{\link{IINT}} approaches. First, the direct and indirect association
-#' tests are applied. An omnibus statistic is calculated based on whichever
-#' approach provides more evidence against the null hypothesis of no genotypic
-#' effect. Details of the method are discussed in the vignette.
+#' Association test that synthesizes the \code{\link{DINT}} and
+#' \code{\link{IINT}} approaches. The first approach directly transforms the
+#' phenotype, whereas the second approach forms residuals prior to applying the
+#' rank normal transformation (\code{\link{rankNormal}}). In the omnibus test,
+#' the direct and indirect tests are separately applied. An omnibus statistic is
+#' calculated based on whichever approach provides more evidence against the
+#' null hypothesis of no genotypic effect. Details of the method are discussed
+#' in the vignette.
 #' 
-#' Assigning a p-value to the omnibus statistic requires estimation of the 
+#' Assigning a p-value to the omnibus statistic requires an estimate of the 
 #' correlation between the test statistics estimated by \code{DINT} and 
 #' \code{IINT}. When many loci are under consideration, a computationally 
 #' efficient approach is to take the correlation of the observed test statistics
@@ -476,6 +174,7 @@ OmniP = function(Q){
 #' the test statistics, set (\code{method="Manual"}) and specify 
 #' (\code{set.rho}).
 #' 
+#' @importFrom stats qnorm
 #' @importFrom plyr aaply
 #' @export
 #' 
@@ -497,7 +196,6 @@ OmniP = function(Q){
 #'   statistics calculated by DINT and IINT. Defaults to FALSE.
 #' @param parallel Logical indicating whether to run in parallel. Must register 
 #'   parallel backend first.
-#' @param check Logical indicating whether to check the input.
 #' @return A numeric matrix of p values, three for each locus in \code{G},
 #'   assessing the null hypothesis that genotype is unrelated to the outcome. If
 #'   \code{keep.stats=T}, the interim test statistics are retained. If
@@ -515,16 +213,14 @@ OmniP = function(Q){
 #' p = RNOmni::RNOmni(y=y,G=Gsub,X=X,S=S,method="Bootstrap",B=10);
 
 RNOmni = function(y,G,X,S,method="AvgCorr",k=3/8,B=100,set.rho,
-                  keep.rho=F,keep.stats=F,parallel=F,check=T){
-  if(check){
-    ## Check inputs
-    Input = inCheck(y,G,X,S);
-    if(Input$fail){stop("Input check failed.")};
-    y = Input$y;
-    G = Input$G;
-    X = Input$X;
-    S = Input$S;
-  }
+                  keep.rho=F,keep.stats=F,parallel=F){
+  ## Check inputs
+  Input = inCheck(y,G,X,S);
+  if(Input$fail){stop("Input check failed.")};
+  y = Input$y;
+  G = Input$G;
+  X = Input$X;
+  S = Input$S;
   # Mandatory checks
   ng = ncol(G);
   if(ng<10 & method=="AvgCorr"){stop("Average correlation is not applicable to this few loci.")};
@@ -548,20 +244,25 @@ RNOmni = function(y,G,X,S,method="AvgCorr",k=3/8,B=100,set.rho,
     if(missing(set.rho)){stop("Provide a value for rho if using method=='Manual'.")}
     R = set.rho;
   }
-  # Matrix containing P1, P2, and their estimated correlation;
-  Q = cbind("p1"=P1[,2],"p2"=P2[,2],R);
+  # Omnibus statistic
+  Q = cbind(-qnorm(P1[,2]),-qnorm(P2[,2]));
+  Q = aaply(.data=Q,.margins=1,.fun=max);
+  Q = cbind(Q,R);
   # Calculate Omnibus p-values
+  aux = function(v){
+    OmniP(v[1],v[2]);
+  }
   if(ng==1){
-    POmni = matrix(OmniP(Q),nrow=1);
+    POmni = matrix(aux(Q),nrow=1);
   } else {
-    POmni = aaply(.data=Q,.margins=1,.fun=OmniP,.parallel=parallel);
+    POmni = aaply(.data=Q,.margins=1,.fun=aux,.parallel=parallel);
   }
   # Keep stats if requested
   if(keep.stats){
-    Out = cbind(P1,P2,POmni);
-    colnames(Out) = c("DINT.Score","DINT.p","IINT.Score","IINT.p","Omni.Stat","Omni.p");
+    Out = cbind(P1,P2,Q[,1],POmni);
+    colnames(Out) = c("DINT.Stat","DINT.p","IINT.Stat","IINT.p","Omni.Stat","Omni.p");
   } else {
-    Out = cbind(P1[,2],P2[,2],POmni[,2]);
+    Out = cbind(P1[,2],P2[,2],POmni);
     colnames(Out) = c("DINT","IINT","Omni");
   }
   # Keep correlation if requested 
