@@ -26,7 +26,8 @@ set.seed(100);
 # Sample size
 n = 1e3;
 ## Simulate genotypes
-G = replicate(rbinom(n,size=2,prob=0.25),n=1e3);
+maf = runif(n=1e3,min=0.05,max=0.50);
+G = sapply(maf,function(x){rbinom(n=n,size=2,prob=x)});
 storage.mode(G) = "numeric";
 # Genetic principal components
 S = svd(scale(G))$u[,1:4];
@@ -61,47 +62,45 @@ print(Q);
 
 ## ---- include=T----------------------------------------------------------
 # Basic Association Test, Normal Phenotype
-Results_BAT_Yn = BAT(y=yn,G=G,X=X);
-round(head(Results_BAT_Yn),digits=3);
+Results1 = BAT(y=yn,G=G,X=X);
+cat("BAT Applied to Normal Phenotype\n");
+round(head(Results1),digits=3);
+cat("\n");
 # Basic Association Test, T3 Phenotype
-Results_BAT_Yt  = BAT(y=yt,G=G,X=X);
-round(head(Results_BAT_Yt),digits=3);
+cat("BAT Applied to T3 Phenotype\n");
+Results2  = BAT(y=yt,G=G,X=X);
+round(head(Results2),digits=3);
 
 ## ---- include=T----------------------------------------------------------
 # Direct INT Test, Normal Phenotype
-Results_DINT_Yn = DINT(y=yn,G=G,X=X);
-round(head(Results_DINT_Yn),digits=3);
+cat("D-INT Applied to Normal Phenotype\n");
+Results1 = DINT(y=yn,G=G,X=X);
+round(head(Results1),digits=3);
+cat("\n");
 # Direct INT Test, T3 Phenotype
-Results_DINT_Yt = DINT(y=yt,G=G,X=X);
-round(head(Results_DINT_Yt),digits=3);
+cat("D-INT Applied to T3 Phenotype\n");
+Results2 = DINT(y=yt,G=G,X=X);
+round(head(Results2),digits=3);
 
 ## ---- include=T----------------------------------------------------------
 # Indirect INT Test, Normal Phenotype
-Results_IINT_Yn = IINT(y=yn,G=G,X=X);
-round(head(Results_IINT_Yn),digits=3);
+cat("I-INT Applied to Normal Phenotype\n");
+Results1 = IINT(y=yn,G=G,X=X);
+round(head(Results1),digits=3);
+cat("\n");
 # Indirect INT Test, T3 Phenotype
-Results_IINT_Yt = IINT(y=yt,G=G,X=X);
-round(head(Results_IINT_Yt),digits=3);
+cat("I-INT Applied to T3 Phenotype\n");
+Results2 = IINT(y=yt,G=G,X=X);
+round(head(Results2),digits=3);
 
 ## ---- include=T, eval=T--------------------------------------------------
-cat("Omnibus Test, Normal Phenotype, Average Correlation Method\n");
-Results_OINT_Avg_Yn = OINT(y=yn,G=G,X=X,method="AvgCorr");
-round(head(Results_OINT_Avg_Yn),digits=3);
+# Omnibus INT Test, Normal Phenotype
+cat("O-INT Applied to Normal Phenotype\n");
+Results1 = OINT(y=yn,G=G,X=X);
+round(head(Results1),digits=3);
 cat("\n");
-cat("Omnibus Test, Normal Phenotype, Bootstrap Correlation Method\n");
-Results_OINT_Boot_Yn = OINT(y=yn,G=G[,1:10],X=X,method="Bootstrap",B=100);
-round(head(Results_OINT_Boot_Yn),digits=3);
-cat("\n");
-cat("Omnibus Test, T3 Phenotype, Average Correlation Method\n");
-Results_OINT_Avg_Yt = OINT(y=yt,G=G,X=X,method="AvgCorr");
-round(head(Results_OINT_Avg_Yt),digits=3);
-cat("\n");
-cat("Omnibus Test, T3 Phenotype, Bootstrap Correlation Method\n");
-Results_OINT_Boot_Yt = OINT(y=yt,G=G[,1:10],X=X,method="Bootstrap",keep.rho=T,B=100);
-round(head(Results_OINT_Boot_Yt),digits=3);
-cat("\n");
-cat("Replicate the Omnibus Test on the T3 Phenotype, Manually Specifying Correlation\n");
-Results_OINT_Boot_Yt = OINT(y=yt,G=G,X=X,method="Manual",set.rho=Results_OINT_Boot_Yt[,"Corr"],keep.rho=T);
-round(head(Results_OINT_Boot_Yt),digits=3);
-cat("\n");
+# Omnibus INT Test, T3 Phenotype
+cat("O-INT Applied to T3 Phenotype\n");
+Results2 = OINT(y=yt,G=G,X=X);
+round(head(Results2),digits=3);
 
