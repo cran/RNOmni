@@ -1,4 +1,4 @@
-e31bb3e30bb4900f99897bf0e638f119 *DESCRIPTION
+0e825dd936e80134f614976019b17d43 *DESCRIPTION
 7fa129291947a775e31ee06cbcc04251 *NAMESPACE
 d711f3026ea420905a50d62b71a29164 *NEWS.md
 161ec14321add190961e2594bd90211c *R/BAT.R
@@ -7,8 +7,8 @@ a8bb58e199d91dc0c6493d0023cf62f3 *R/DINT.R
 330fd6ba5080c67a100e8468d0ebcef9 *R/IINT.R
 03da5c7df9d6efdc067c48777dffa27d *R/InputCheck.R
 eddf315fee58eaab4dd69d7ca344ee52 *R/OINT.R
-ca38e9bc2f590560b10fa4638cdd1177 *R/PackageHelp.R
 3da008cd9e60f6e0f92a7c331da0e187 *R/RN.R
+5a09255a6ade8f156ca8c687c0398952 *R/RNOmni-package.R
 a6c410a24d01d50558cd2bdd96d76253 *R/RcppExports.R
 efd1a2cd2920e871da3e48873856173e *build/vignette.rds
 c629b5d23c7a1ba7a98ead4c3604b436 *inst/doc/RNOmni.html
@@ -23,11 +23,11 @@ c629b5d23c7a1ba7a98ead4c3604b436 *inst/doc/RNOmni.html
 bc2332d8a8a89a81d3573bc736eb3ac5 *man/OmniP.Rd
 52718ef78d87f0e8b16b52c64365374e *man/PartitionData.Rd
 21ae0070a3a6a0049fb27f8a6e7576ec *man/PtoCauchy.Rd
-5f7ddef2ce2925288149adb1d25982a4 *man/RNOmni-help.Rd
+2ffdd1108088cd5dda5bc8d1c426a59d *man/RNOmni-package.Rd
 366ecd87f93bb0fe2a884d6ca01be1e7 *man/RankNorm.Rd
 624104a9da18874c2f090fe4b02ba3ad *src/LinReg.cpp
-b4554e62176fc9dc69181c00855f3a03 *src/Makevars
-b4554e62176fc9dc69181c00855f3a03 *src/Makevars.win
+dabf6e18c628e0fdcaf2b8da95f8ec2c *src/Makevars
+dabf6e18c628e0fdcaf2b8da95f8ec2c *src/Makevars.win
 e19daa7f5f7fb55838fc8ebf73c652a6 *src/MatrixOps.cpp
 4c1289c829f39b0cdbf4eac6954d0aae *src/RcppExports.cpp
 7c67e92693b169e88b90d6b5e1316104 *tests/testthat.R
